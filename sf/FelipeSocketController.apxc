@@ -1,0 +1,12 @@
+global with sharing class FelipeSocketController {
+	
+    // Dummy init - we'll never create an object of this class.
+    public FelipeSocketController(){} 
+    
+    @RemoteAction
+    global static Contact getContact(String rfid) {
+        Contact c = [SELECT Id FROM Contact WHERE RFID__c = :rfid];
+        return c;
+    }
+    
+}
