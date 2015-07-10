@@ -1,0 +1,107 @@
+<apex:page showHeader="false" sidebar="false" standardStylesheets="false" docType="html-5.0" controller="FelipeSocketController">
+    <apex:includeScript value="{!$Resource.socketio}"/>
+    <apex:stylesheet value="{!$Resource.cube_css}"/>
+
+    <div>
+        <h1 id="scans">Waiting for a scan <span class="blinking-cursor">...</span></h1>
+    </div>
+
+    <div class="container">
+        <div class="back side"><span class='dot'></span></div>
+        <div class="left side"><span class='dot'></span></div>
+        <div class="right side"><span class='dot'></span></div>
+        <div class="top side"><span class='dot'></span></div>
+        <div class="bottom side"><span class='dot'></span></div>
+        <div class="front side"><span class='dot'></span></div>
+    </div>
+    
+    <script type="text/javascript" charset="utf-8">
+        console.log('Attempting connection');
+        var socket = io.connect('https://cryptic-tor-2725.herokuapp.com');      
+        console.log(socket);    
+    
+        socket.on('connect', function() {
+            socket.emit('first connect', {data: 'Connected via Salesforce'});
+            console.log('Connected');
+        });
+
+        socket.on('pong', function(response) {
+            console.log(response);            
+        });
+
+        socket.on('scan', function(response) {
+            console.log(response);
+            var r = JSON.parse(response);           
+                
+            if ('the_id' in r || 'rfid' in r) {
+                
+                // We're in SF1:
+                if( (typeof sforce != 'undefined') && (sforce != null) ) {                  
+                    
+                    // We received a raw SF ID, immediatelly navigate to that record.
+                    if ('the_id' in r) {                
+                        console.log("Received a raw sf id: " + r.the_id);
+                        sforce.one.navigateToSObject(final_id);
+                    }
+                    
+                    // We received an RFID, use the controller to fetch the SF ID asynchronously...
+                    if ('rfid' in r) {
+                        console.log("Received an rfid: " + r.rfid);
+                        getRemoteAccount(r.rfid, true)
+                    }                                        
+                }
+                // We're in the Desktop:
+                else {
+                    seconds = 3;
+                    var scan_info = document.getElementById('scans');
+                    var original = scan_info.innerHTML;
+                    scan_info.innerHTML = "Got a scan! Going in ..." + seconds;
+                    
+                    var stop = setInterval(function () {
+                        seconds--;
+                        scan_info.innerHTML = "Got a scan! Going in ..." + seconds;
+                        if (seconds == 0) {                            
+                            // We received a raw SF ID, immediatelly navigate to that record.
+                            if ('the_id' in r) {                
+                                console.log("Received a raw sf id: " + r.the_id);
+                                window.open('//' + document.domain + '/' + r.the_id, '_blank');                             
+                            }                    
+                            // We received an RFID, use the controller to fetch the SF ID asynchronously...
+                            else if ('rfid' in r) {
+                                console.log("Received an rfid: " + r.rfid);
+                                getRemoteAccount(r.rfid, false)
+                                
+                            }
+                            scan_info.innerHTML = original;
+                            seconds = 3;
+                            clearInterval(stop);
+                        }
+                    }, 1000);
+                }
+            }
+        });
+        
+        function getRemoteAccount(rfid, sf1) {
+                        
+            FelipeSocketController.getContact(rfid,
+                function(result, event){
+                    if (event.status) {  
+                        console.log('Success. Matching id is: ' + result.Id);
+                        if (sf1){
+                            sforce.one.navigateToSObject(result.Id);
+                        }
+                        else {
+                            window.open('//' + document.domain + '/' + result.Id, '_blank');                            
+                        }                        
+                    } else if (event.type === 'exception') {
+                        console.log('Exception');
+                    } else {
+                        console.log('Some other Exception');
+                    }
+                } 
+            );           
+        }
+    
+    </script>
+    
+</apex:page>
