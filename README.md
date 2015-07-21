@@ -1,6 +1,7 @@
 #Internet of Things demo
 ##Scan an rfid tag or card and have that automatically bring up a record on Salesforce and Salesforce1.
 
+[![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy?template=https://github.com/feliperyan/flasksocketio_heroku_button)
 
 ###Process flow
 - Uses an Arduino with an rfid module to read tags.
